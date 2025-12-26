@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🤖 ChatBacsi Snake</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #FFD700;
+            margin-bottom: 5px;
+            font-size: 2.5rem;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .logo-img {
+            height: 50px;
+            width: auto;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+        
+        .subtitle {
+            color: #FFD700;
+            opacity: 0.8;
+            margin-bottom: 20px;
+            font-style: italic;
+            font-size: 1.2rem;
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(255, 215, 0, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        #gameCanvas {
+            border: 3px solid #FFD700;
+            border-radius: 10px;
+            background-color: #0f3460;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            aspect-ratio: 1;
+        }
+        
+        .buttons {
+            margin-top: 25px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            background: rgba(255, 107, 107, 0.9);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-size: 1.1rem;
+            padding: 12px 25px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            min-width: 120px;
+        }
+        
+        .action-btn.start {
+            background: rgba(255, 215, 0, 0.9);
+            color: #1a1a2e;
+        }
+        
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .instructions {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 25px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        
+        .instructions strong {
+            color: #FFD700;
+        }
+        
+        .swipe-hint {
+            margin-top: 10px;
+            font-size: 1rem;
+            color: #FFD700;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .game-over {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(26, 26, 46, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            border: 3px solid #FFD700;
+            z-index: 10;
+            width: 90%;
+            max-width: 320px;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+        }
+        
+        .game-over-title {
+            color: #ff6b6b;
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            line-height: 1.3;
+            text-align: center;
+            word-wrap: break-word;
+        }
+        
+        .final-score {
+            margin: 15px 0;
+            font-size: 1.4rem;
+            color: #FFD700;
+        }
+        
+        @media (max-width: 480px) {
+            h1 { font-size: 2rem; }
+            .logo-img { height: 40px; }
+            .subtitle { font-size: 1rem; }
+            .game-info { font-size: 1rem; }
+            .action-btn { font-size: 1rem; padding: 10px 20px; }
+            .game-over-title { font-size: 1.6rem; }
+            .final-score { font-size: 1.2rem; }
+        }
+        
+        @media (max-width: 350px) {
+            .game-over-title { font-size: 1.4rem; }
+            .game-over { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <img src="https://kephost.net/p/MjIyNjk1Ng.png" class="logo-img" alt="ChatBacsi Logo">
+            CHATBACSI
+        </h1>
+        <div class="subtitle">Játsz a kígyómmal!</div>
+        
+        <div class="game-info">
+            <div>Pont: <span id="score">0</span></div>
+            <div>Rekord: <span id="highScore">0</span></div>
+            <div>Sebesség: <span id="speed">1</span></div>
+        </div>
+        
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        
+        <div class="swipe-hint">
+            👆 Csúsztasd az ujjad a képernyőn!
+        </div>
+        
+        <div class="buttons">
+            <button class="action-btn start" onclick="startGame()">START</button>
+            <button class="action-btn" onclick="pauseGame()">SZÜNET</button>
+            <button class="action-btn" onclick="resetGame()">ÚJ JÁTÉK</button>
+        </div>
+        
+        <div class="instructions">
+            <p><strong>Útmutató:</strong> Csak swipe-olj bátran!</p>
+            <p>• Balra csúsztatás = BALRA</p>
+            <p>• Jobbra csúsztatás = JOBBRA</p>
+            <p>• Felfelé csúsztatás = FEL</p>
+            <p>• Lefelé csúsztatás = LE</p>
+            <p>• Minden ChatBacsi kép +10 pont</p>
+        </div>
+        
+        <div class="game-over" id="gameOverScreen">
+            <div class="game-over-title">💀 MEGPUSZTULTÁL! 💀</div>
+            <div class="final-score">Pontod: <span id="finalScore">0</span></div>
+            <button class="action-btn start" onclick="startGame()" style="background: #ff6b6b; font-size: 1.1rem; padding: 10px 20px; margin-top: 10px;">ÚJRA BMEG!</button>
+        </div>
+    </div>
+
+    <script>
+        // === KÉPEK BETÖLTÉSE ===
+        const foodImage = new Image();
+        // ChatBacsi kép (ételként)
+        foodImage.src = 'https://kephost.net/p/MjIyNjk1Ng.png';
+        
+        // === JÁTÉK VÁLTOZÓK ===
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const box = 20;
+        
+        let snake = [];
+        let food = {};
+        let score = 0;
+        let highScore = localStorage.getItem('chatbacsiHighScore') || 0;
+        let direction = 'right';
+        let game;
+        let gameRunning = false;
+        let gamePaused = false;
+        let gameSpeed = 150;
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        // Elemek
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('highScore');
+        const speedElement = document.getElementById('speed');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const finalScoreElement = document.getElementById('finalScore');
+
+        // High score megjelenítése
+        highScoreElement.textContent = highScore;
+
+        // === FUNKCIÓK ===
+        function initSnake() {
+            snake = [];
+            snake[0] = {
+                x: 9 * box,
+                y: 10 * box
+            };
+        }
+
+        function createFood() {
+            food = {
+                x: Math.floor(Math.random() * (canvas.width / box)) * box,
+                y: Math.floor(Math.random() * (canvas.height / box)) * box
+            };
+            
+            // Ne legyen a kígyó testén
+            for (let i = 0; i < snake.length; i++) {
+                if (snake[i].x === food.x && snake[i].y === food.y) {
+                    createFood();
+                    return;
+                }
+            }
+        }
+
+        function changeDirection(newDirection) {
+            if (gamePaused || !gameRunning) return;
+            
+            if (
+                (newDirection === 'left' && direction !== 'right') ||
+                (newDirection === 'right' && direction !== 'left') ||
+                (newDirection === 'up' && direction !== 'down') ||
+                (newDirection === 'down' && direction !== 'up')
+            ) {
+                direction = newDirection;
+            }
+        }
+
+        // === CSUSZTATÁSOS (SWIPE) IRÁNYÍTÁS ===
+        canvas.addEventListener('touchstart', function(event) {
+            if (!gameRunning || gamePaused) return;
+            touchStartX = event.touches[0].clientX;
+            touchStartY = event.touches[0].clientY;
+            event.preventDefault();
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', function(event) {
+            if (!gameRunning || gamePaused) return;
+            
+            const touchEndX = event.changedTouches[0].clientX;
+            const touchEndY = event.changedTouches[0].clientY;
+            
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+            
+            // Csak jelentős swipe-ot fogadunk el
+            if (Math.abs(dx) > 20 || Math.abs(dy) > 20) {
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    // Vízszintes swipe
+                    if (dx > 0) {
+                        changeDirection('right');
+                    } else {
+                        changeDirection('left');
+                    }
+                } else {
+                    // Függőleges swipe
+                    if (dy > 0) {
+                        changeDirection('down');
+                    } else {
+                        changeDirection('up');
+                    }
+                }
+            }
+            
+            event.preventDefault();
+        }, { passive: false });
+
+        function collisionDetection(head) {
+            // Fal ütközés
+            if (head.x < 0 || head.y < 0 || head.x >= canvas.width || head.y >= canvas.height) {
+                return true;
+            }
+            
+            // Önmagával ütközés
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        function draw() {
+            // Háttér
+            ctx.fillStyle = '#0f3460';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Rács
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.1)';
+            for (let i = 0; i < canvas.width; i += box) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for (let j = 0; j < canvas.height; j += box) {
+                ctx.beginPath();
+                ctx.moveTo(0, j);
+                ctx.lineTo(canvas.width, j);
+                ctx.stroke();
+            }
+            
+            // === KÍGYÓ RAJZOLÁSA - CITROMSÁRGA ===
+            for (let i = 0; i < snake.length; i++) {
+                if (i === 0) {
+                    // Fej
+                    ctx.fillStyle = '#FFD700';
+                } else {
+                    // Test
+                    const darken = Math.min(i * 10, 100);
+                    const r = 255 - darken;
+                    const g = 215 - darken * 0.5;
+                    ctx.fillStyle = `rgb(${r}, ${g}, 0)`;
+                }
+                
+                ctx.fillRect(snake[i].x, snake[i].y, box - 1, box - 1);
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.strokeRect(snake[i].x, snake[i].y, box - 1, box - 1);
+                
+                // Kígyó szemei
+                if (i === 0) {
+                    ctx.fillStyle = '#1a1a2e';
+                    ctx.fillRect(snake[i].x + 5, snake[i].y + 5, 4, 4);
+                    ctx.fillRect(snake[i].x + box - 9, snake[i].y + 5, 4, 4);
+                    
+                    // Vigyor (mert vicces kígyó)
+                    ctx.strokeStyle = '#1a1a2e';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(snake[i].x + box/2, snake[i].y + box - 5, 6, 0.2, Math.PI - 0.2);
+                    ctx.stroke();
+                }
+            }
+            
+            // === ÉTEL RAJZOLÁSA - CHATBACSI KÉP ===
+            if (foodImage.complete) {
+                ctx.drawImage(foodImage, food.x, food.y, box, box);
+            } else {
+                foodImage.onload = function() {
+                    ctx.drawImage(foodImage, food.x, food.y, box, box);
+                };
+                // Ha a kép nem tölt be, rajzolj egy sárga kört
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(food.x + box/2, food.y + box/2, box/2 - 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function gameLoop() {
+            if (gamePaused || !gameRunning) return;
+            
+            let head = {x: snake[0].x, y: snake[0].y};
+            
+            switch(direction) {
+                case 'left': head.x -= box; break;
+                case 'up': head.y -= box; break;
+                case 'right': head.x += box; break;
+                case 'down': head.y += box; break;
+            }
+            
+            snake.unshift(head);
+            
+            // Étel evés
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                scoreElement.textContent = score;
+                
+                if (gameSpeed > 50) {
+                    gameSpeed -= 5;
+                    speedElement.textContent = Math.floor((150 - gameSpeed) / 10) + 1;
+                }
+                
+                createFood();
+            } else {
+                snake.pop();
+            }
+            
+            if (collisionDetection(head)) {
+                gameOver();
+                return;
+            }
+            
+            draw();
+        }
+
+        function startGame() {
+            if (gameRunning) return;
+            
+            gameOverScreen.style.display = 'none';
+            initSnake();
+            createFood();
+            score = 0;
+            gameSpeed = 150;
+            direction = 'right';
+            gameRunning = true;
+            gamePaused = false;
+            scoreElement.textContent = score;
+            speedElement.textContent = '1';
+            
+            if (game) clearInterval(game);
+            game = setInterval(gameLoop, gameSpeed);
+        }
+
+        function pauseGame() {
+            if (!gameRunning) return;
+            
+            gamePaused = !gamePaused;
+            const pauseBtn = document.querySelector('.action-btn:nth-child(2)');
+            pauseBtn.textContent = gamePaused ? 'FOLYTATÁS' : 'SZÜNET';
+            
+            if (!gamePaused) {
+                game = setInterval(gameLoop, gameSpeed);
+            } else {
+                clearInterval(game);
+            }
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            clearInterval(game);
+            
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('chatbacsiHighScore', highScore);
+                highScoreElement.textContent = highScore;
+                
+                // Extra üzenet új rekord esetén
+                finalScoreElement.innerHTML = `<span style="color:#FFD700">${score}</span> <small>(Új rekord!)</small>`;
+            } else {
+                finalScoreElement.textContent = score;
+            }
+            
+            gameOverScreen.style.display = 'block';
+        }
+
+        function resetGame() {
+            gameRunning = false;
+            gamePaused = false;
+            clearInterval(game);
+            initSnake();
+            createFood();
+            score = 0;
+            gameSpeed = 150;
+            direction = 'right';
+            scoreElement.textContent = score;
+            speedElement.textContent = '1';
+            draw();
+            gameOverScreen.style.display = 'none';
+            
+            const pauseBtn = document.querySelector('.action-btn:nth-child(2)');
+            pauseBtn.textContent = 'SZÜNET';
+        }
+
+        // === INICIALIZÁLÁS ===
+        initSnake();
+        createFood();
+        draw();
+        
+        console.log("🤖 ChatBacsi Snake játék elindítva!");
+        console.log("Csak swipe-olás! 👆👇👈👉");
+    </script>
+</body>
+</html>
